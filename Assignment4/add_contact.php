@@ -1,7 +1,14 @@
 <?php
-    session_start();
 
-    // Retrieve data from form
+
+session_start();
+
+if (!isset($_SESSION['userID'])) {
+    header('Location: login_form.php');
+    exit();
+}
+    
+// Retrieve data from form
     $first_name = filter_input(INPUT_POST, 'first_name');
     $last_name = filter_input(INPUT_POST, 'last_name');
     $email_address = filter_input(INPUT_POST, 'email_address');
@@ -17,10 +24,15 @@
 
     // Validation to be added later to prevent duplicate contacts and ensure no null data
 
-    $queryContacts = "SELECT * FROM contacts";
+    
+$queryContacts = "SELECT * FROM contacts WHERE userID = :userID";
 
     $statement = $db->prepare($queryContacts);
-    $statement->execute();
+    
+$statement->execute([
+    ':userID' => $_SESSION['userID']
+]);
+
     $contacts = $statement->fetchAll();
     $statement->closeCursor();
 
@@ -75,8 +87,11 @@
 
     // Add Contact
 
-    $query = 'INSERT INTO contacts (firstName, lastName, emailAddress, phoneNumber, dob, typeID, imageName)
-        VALUES (:firstName, :lastName, :emailAddress, :phoneNumber, :dob, :typeID, :imageName)';
+   
+$query = 'INSERT INTO contacts
+    (firstName, lastName, emailAddress, phoneNumber, dob, typeID, imageName, userID)
+    VALUES
+    (:firstName, :lastName, :emailAddress, :phoneNumber, :dob, :typeID, :imageName, :userID)';
 
     $statement = $db->prepare($query);
 
@@ -84,6 +99,8 @@
     $statement->bindValue(':lastName', $last_name);
     $statement->bindValue(':emailAddress', $email_address);
     $statement->bindValue(':phoneNumber', $phone_number);
+    $statement->bindValue(':userID', $_SESSION['userID'], PDO::PARAM_INT);
+
     $statement->bindValue(':dob', $birth_date);
     $statement->bindValue(':typeID', $type_id);
     $statement->bindValue(':imageName', $image_name);

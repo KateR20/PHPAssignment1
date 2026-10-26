@@ -1,6 +1,12 @@
 <?php
     session_start();
 
+if (!isset($_SESSION['userID'])) {
+    header('Location: login_form.php');
+    exit();
+}
+
+
     // Retrieve data from form
     $contact_id = filter_input(INPUT_POST, 'contact_id', FILTER_VALIDATE_INT);
     $first_name = filter_input(INPUT_POST, 'first_name');
@@ -11,19 +17,36 @@
     $type_id = filter_input(INPUT_POST, 'type_id', FILTER_VALIDATE_INT);
 
     require_once("database.php"); //prevent duplicate connections
-    require_once("image_util.php");
+    
+
+
 
     // Get the uploaded image (if any)
     $image = $_FILES['file1'];
 
     // Get current contact record to check current image name
-    $queryContacts = "SELECT * FROM contacts WHERE contactID = :contactID";
+    
 
-    $statement = $db->prepare($queryContacts);
-    $statement->bindValue(':contactID', $contact_id);
-    $statement->execute();
-    $contact = $statement->fetch();
-    $statement->closeCursor();
+    
+$queryContacts = "SELECT * FROM contacts
+                  WHERE contactID = :contactID
+                  AND userID = :userID";
+
+$statement = $db->prepare($queryContacts);
+
+
+    
+$statement->bindValue(':contactID', $contact_id);
+$statement->bindValue(':userID', $_SESSION['userID'], PDO::PARAM_INT);
+
+$statement->execute();
+$contact = $statement->fetch();
+$statement->closeCursor();
+
+if (!$contact) {
+    http_response_code(404);
+    exit('Contact not found or access denied.');
+}
 
     $old_image_name = $contact['imageName'];
     $base_dir = 'images/';
@@ -32,10 +55,16 @@
 
     // Validation to be added later to prevent duplicate contacts and ensure no null data
 
-    $queryContacts = "SELECT * FROM contacts";
+    
+$queryContacts = "SELECT * FROM contacts WHERE userID = :userID";
+
 
     $statement = $db->prepare($queryContacts);
-    $statement->execute();
+    
+$statement->execute([
+    ':userID' => $_SESSION['userID']
+]);
+
     $contacts = $statement->fetchAll();
     $statement->closeCursor();
 
@@ -98,7 +127,9 @@
 
     // Update Contact
 
-    $query = 'UPDATE contacts 
+    
+$query = "UPDATE contacts
+
         SET firstName = :firstName,
             lastName = :lastName,
             emailAddress = :emailAddress,
@@ -106,11 +137,16 @@
             dob = :dob,
             typeID = :typeID,
             imageName = :imageName
-        WHERE contactID = :contactID';
+        
+WHERE contactID = :contactID
+AND userID = :userID";
+
 
     $statement = $db->prepare($query);
 
+    
     $statement->bindValue(':firstName', $first_name);
+
     $statement->bindValue(':lastName', $last_name);
     $statement->bindValue(':emailAddress', $email_address);
     $statement->bindValue(':phoneNumber', $phone_number);
@@ -118,6 +154,7 @@
     $statement->bindValue(':typeID', $type_id);
     $statement->bindValue(':imageName', $image_name);
     $statement->bindValue(':contactID', $contact_id);
+    $statement->bindValue(':userID', $_SESSION['userID'], PDO::PARAM_INT);
 
     $statement->execute();    
     $statement->closeCursor();

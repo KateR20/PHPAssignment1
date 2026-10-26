@@ -1,5 +1,9 @@
 <?php
+    
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
 
     $dsn = 'mysql:host=localhost;dbname=contact_manager_2026_ev';
     $username = 'root';

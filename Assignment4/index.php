@@ -1,11 +1,29 @@
 <?php
-    require("database.php");
+    
+session_start();
 
-    $queryContacts = "SELECT c.contactID, c.firstName, c.lastName, c.emailAddress, c.phoneNumber, c.dob, 
-        c.typeID, c.imageName, t.contactType FROM contacts c LEFT JOIN types t ON c.typeID = t.typeID";
+if (!isset($_SESSION['userID'])) {
+    header('Location: login_form.php');
+    exit();
+}
+
+require("database.php");
+
+    
+$queryContacts = "SELECT c.contactID, c.firstName, c.lastName,
+    c.emailAddress, c.phoneNumber, c.dob,
+    c.typeID, c.imageName, t.contactType
+    FROM contacts c
+    LEFT JOIN types t ON c.typeID = t.typeID
+    WHERE c.userID = :userID";
+
 
     $statement = $db->prepare($queryContacts);
-    $statement->execute();
+    
+$statement->execute([
+    ':userID' => $_SESSION['userID']
+]);
+
     $contacts = $statement->fetchAll();
     $statement->closeCursor();
 
@@ -79,7 +97,9 @@
 
                         <td>
                             <form action="contact_details.php" method="post">
-                                <input type="hidden" name="contact_id" value="<?php echo $contact['contactID']; ?>" />
+                                
+<input type="hidden" name="contact_id" value="<?php echo $contact['contactID']; ?>" />
+
                                 <input type="submit" value="View Details" />
                             </form>
                         </td>

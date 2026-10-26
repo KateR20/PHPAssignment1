@@ -1,5 +1,11 @@
 <?php
     session_start();
+
+if (!isset($_SESSION['userID'])) {
+    header('Location: login_form.php');
+    exit();
+}
+
     require("database.php");
 
     // get contact id
@@ -12,10 +18,14 @@
 
     $queryContacts = "SELECT c.contactID, c.firstName, c.lastName, c.emailAddress, c.phoneNumber, c.dob, 
         c.typeID, c.imageName, t.contactType FROM contacts c LEFT JOIN types t ON c.typeID = t.typeID 
-        WHERE contactID = :contactID";
+        
+WHERE c.contactID = :contactID
+AND c.userID = :userID";
 
     $statement = $db->prepare($queryContacts);
     $statement->bindValue(':contactID', $contact_id);
+    $statement->bindValue(':userID', $_SESSION['userID'], PDO::PARAM_INT);
+
     $statement->execute();
     $contact = $statement->fetch();
     $statement->closeCursor();
